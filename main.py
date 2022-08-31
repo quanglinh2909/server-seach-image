@@ -18,29 +18,19 @@ async def home():
 @app.post("/search")
 async def search_image(item:MyItem):
     try:
-        start_time = time.time()
         data =  service.search(item.url)
-        end_time = time.time()
-        print("thơi gian 1: ", end_time - start_time)
         return data
 
     except:
         return("sai duong dan")
 @app.post("/insert")
 async def insert_image(item:IsertItem):
-    print(item.id,item.url)
     try:
         isE = service.isExist(item.id)
-        print(3)
         if len(isE) == 0:
-            print("1")
-            start_time = time.time()
             data =  service.insert(item.id,item.url)
-            end_time = time.time()
-            print("thơi gian 1: ", end_time - start_time)
             return data
         else:
-           print(2)
            return service.update(item.id, item.url)
 
     except:
@@ -48,10 +38,7 @@ async def insert_image(item:IsertItem):
 @app.put("/update")
 async def update_image(item:IsertItem):
     try:
-        start_time = time.time()
         data =  service.update(item.id,item.url)
-        end_time = time.time()
-        print("thơi gian 1: ", end_time - start_time)
         return data
     except:
         return("sai duong dan")
@@ -66,6 +53,10 @@ def delete(id: str):
 @app.on_event("startup")
 async def startup_event():
     print("khoi dong server")
+    try:
+        service.init_server("http://192.168.100.74:3100/api/addict/get-all")
+    except:
+        print("loi server")
 
 
 if __name__ == "__main__":

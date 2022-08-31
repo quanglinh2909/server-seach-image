@@ -3,12 +3,10 @@ import sqlite3
 import sqlite3
 import cv2
 import face_recognition
-import csv
-import json
 import urllib.request
 import numpy
-import time
-
+import requests
+CLIENT_HOST = 'http://192.168.100.74:3100/'
 def getData():
     conn = sqlite3.connect('data/data.db')
     cursor = conn.execute("SELECT * FROM encode")
@@ -19,7 +17,8 @@ def getData():
         item={
             "id":r[0],
             "idAddict":r[1],
-            "data":numpy.fromstring(r[2], dtype=float, sep=',')
+            "data":numpy.fromstring(r[2], dtype=float, sep=','),
+            "url":r[3]
         }
         results.append(item)
     return results
@@ -50,7 +49,6 @@ def update(id,url):
     return cur.lastrowid
 # update("1","http://192.168.100.74:3100/2022823/2022-08-23T04-00-19.156Z-2022-08-01t02-44-53.823z-anh-gai-xinh-cuc-dep.jpg")
 def isExist(id):
-    print(id)
     conn = sqlite3.connect('data/data.db')
     cursor = conn.execute("SELECT * FROM encode where  idAddict = ?",(id,))
     rows = cursor.fetchall()
@@ -82,21 +80,51 @@ def search(url):
 
 # for i in range(1,1000):
 #     insert(i,"http://192.168.100.74:3100/2022823/2022-08-23T04-00-19.156Z-2022-08-01t02-44-53.823z-anh-gai-xinh-cuc-dep.jpg")
-#
-def demo(id,url):
-        isExi = isExist("2")
-        if len(isExi) == 0:
-            print("1")
-            # start_time = time.time()
-            data =  insert(id,url)
-            # end_time = time.time()
-            # print("thơi gian 1: ", end_time - start_time)
-            # return data
+
+def check_data_not_none(id:str,url:str):
+    dataData = getData()
+    check = False
+    for item in dataData:
+       if item['idAddict'] == id:
+           if item['url'].endswith(url) == False:
+               urlImage = ''.join([CLIENT_HOST,url])
+               try:
+                    update(id,urlImage)
+               except:
+                    return False
+           check = True
+    # print(id,url)
+    if check == False:
+        urlImage = ''.join([CLIENT_HOST, url])
+        try:
+            insert(id, urlImage)
+            return True
+        except:
+            return False
+
+
+def check_data_none(id:str,url:str):
+    dataData = getData()
+    for item in dataData:
+        if item['idAddict'] == id:
+            delete(id)
+def check_remove(response):
+    dataData = getData()
+    for item2 in dataData:
+        check = False
+        for item in response:
+            if item['ID'] == item2['idAddict']:
+                check = True
+                break
+        if check == False:
+           delete(item2['idAddict'])
+def init_server(url:str):
+    response = requests.get(url).json()
+    check_remove(response)
+    for item in response:
+        if item['ImgLink'] != None:
+            check_data_not_none(item['ID'],item['ImgLink'])
         else:
-           print(2)
-           # return service.update(item.id, item.url)
+            check_data_none(item['ID'], item['ImgLink'])
 
-
-
-
-# demo("A9B20AEA-3628-ED11-9687-A266FAE0D072","http://192.168.100.74:3100/2022830/2022-08-30t07-59-43.121z-aaron_peirsol_0002.jpg")
+# init_server("http://192.168.100.74:3100/api/addict/get-all")
